@@ -1,713 +1,301 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coupon Database</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #f5f3ee;
-      --surface: #ffffff;
-      --surface2: #f0ede6;
-      --border: #e0dbd0;
-      --text: #1a1814;
-      --text2: #6b6659;
-      --text3: #9c9484;
-      --accent: #c84b2f;
-      --accent-bg: #fdf0ec;
-      --green: #2a7a4b;
-      --green-bg: #edf7f1;
-      --amber: #b5620a;
-      --amber-bg: #fef3e2;
-      --mono: 'DM Mono', monospace;
-      --sans: 'DM Sans', sans-serif;
-      --radius: 10px;
-      --radius-lg: 16px;
-    }
-
-    body {
-      font-family: var(--sans);
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 0;
-    }
-
-    /* ── Header ── */
-    header {
-      background: var(--text);
-      color: #fff;
-      padding: 18px 32px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    header svg { flex-shrink: 0; }
-    header h1 {
-      font-family: var(--mono);
-      font-size: 15px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: #fff;
-    }
-    header span {
-      margin-left: auto;
-      font-family: var(--mono);
-      font-size: 12px;
-      color: rgba(255,255,255,0.4);
-    }
-
-    /* ── Layout ── */
-    .layout {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 0;
-      min-height: calc(100vh - 57px);
-    }
-
-    /* ── Scanner Panel ── */
-    .scanner-panel {
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .panel-title {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text3);
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* ── Camera View ── */
-    .camera-wrap {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 4/3;
-      background: #111;
-      border-radius: var(--radius);
-      overflow: hidden;
-      border: 1px solid var(--border);
-    }
-    .camera-wrap video {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .aim-overlay {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      pointer-events: none;
-    }
-    .aim-box {
-      width: 65%; aspect-ratio: 2.2/1;
-      border: 1.5px solid rgba(255,255,255,0.75);
-      border-radius: 6px;
-      box-shadow: 0 0 0 2000px rgba(0,0,0,0.38);
-    }
-    .aim-box::before, .aim-box::after {
-      content: '';
-      position: absolute;
-      width: 16px; height: 16px;
-      border-color: #fff;
-      border-style: solid;
-    }
-    .scan-flash {
-      position: absolute; inset: 0;
-      background: rgba(42,122,75,0.3);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.08s;
-    }
-    .scan-hint {
-      position: absolute;
-      bottom: 10px; left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.65);
-      color: rgba(255,255,255,0.85);
-      font-size: 11px;
-      font-family: var(--mono);
-      padding: 3px 12px;
-      border-radius: 99px;
-      white-space: nowrap;
-    }
-
-    /* ── Buttons ── */
-    .btn-row { display: flex; gap: 6px; }
-    button {
-      font-family: var(--sans);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      padding: 8px 14px;
-      transition: background 0.12s, border-color 0.12s, opacity 0.12s;
-      display: flex; align-items: center; gap: 6px;
-    }
-    button:hover { background: var(--surface2); border-color: #ccc; }
-    button:active { opacity: 0.75; }
-    button:disabled { opacity: 0.35; cursor: not-allowed; }
-    .btn-primary {
-      background: var(--text); color: #fff;
-      border-color: var(--text);
-    }
-    .btn-primary:hover { background: #333; border-color: #333; }
-    .btn-danger {
-      background: var(--accent-bg); color: var(--accent);
-      border-color: #f0c4b8;
-    }
-    .btn-danger:hover { background: #fde4dc; }
-
-    /* ── Result Box ── */
-    .result-box {
-      background: var(--green-bg);
-      border: 1px solid #b6e5cc;
-      border-radius: var(--radius);
-      padding: 12px 14px;
-      display: none;
-    }
-    .result-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--green);
-      margin-bottom: 5px;
-    }
-    .result-value {
-      font-family: var(--mono);
-      font-size: 17px;
-      font-weight: 500;
-      color: var(--text);
-      word-break: break-all;
-    }
-    .result-format {
-      font-size: 11px;
-      color: var(--text3);
-      margin-top: 4px;
-    }
-    .result-actions { display: flex; gap: 6px; margin-top: 10px; }
-
-    /* ── Manual Entry ── */
-    .manual-entry { display: flex; gap: 6px; }
-    .manual-entry input {
-      flex: 1;
-      font-family: var(--mono);
-      font-size: 13px;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      color: var(--text);
-      outline: none;
-    }
-    .manual-entry input:focus { border-color: var(--text); }
-    .manual-entry input::placeholder { color: var(--text3); }
-
-    /* ── Error Box ── */
-    .error-box {
-      background: var(--accent-bg);
-      border: 1px solid #f0c4b8;
-      border-radius: var(--radius);
-      padding: 10px 14px;
-      font-size: 12px;
-      color: var(--accent);
-      display: none;
-      font-family: var(--mono);
-    }
-
-    /* ── Database Panel ── */
-    .db-panel {
-      padding: 24px 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .db-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .db-header .panel-title { border: none; padding: 0; flex: 1; }
-
-    .search-bar {
-      display: flex; gap: 8px; align-items: center;
-    }
-    .search-bar input {
-      font-family: var(--sans);
-      font-size: 13px;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      color: var(--text);
-      outline: none;
-      width: 220px;
-    }
-    .search-bar input:focus { border-color: var(--text); }
-    .search-bar input::placeholder { color: var(--text3); }
-
-    .stats-row {
-      display: flex; gap: 10px; flex-wrap: wrap;
-    }
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 10px 16px;
-      min-width: 90px;
-    }
-    .stat-card .stat-num {
-      font-family: var(--mono);
-      font-size: 22px;
-      font-weight: 500;
-      color: var(--text);
-    }
-    .stat-card .stat-lbl {
-      font-size: 11px;
-      color: var(--text3);
-      margin-top: 2px;
-    }
-
-    /* ── Coupon Table ── */
-    .table-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      flex: 1;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    thead {
-      background: var(--surface2);
-      border-bottom: 1px solid var(--border);
-    }
-    th {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text3);
-      padding: 10px 16px;
-      text-align: left;
-      white-space: nowrap;
-    }
-    td {
-      padding: 11px 16px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      vertical-align: middle;
-    }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: var(--surface2); }
-
-    .td-barcode {
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 500;
-    }
-    .badge {
-      display: inline-block;
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 99px;
-      background: var(--surface2);
-      color: var(--text2);
-      border: 1px solid var(--border);
-    }
-    .badge-green { background: var(--green-bg); color: var(--green); border-color: #b6e5cc; }
-    .badge-amber { background: var(--amber-bg); color: var(--amber); border-color: #f9d9aa; }
-
-    .note-input {
-      font-family: var(--sans);
-      font-size: 12px;
-      padding: 4px 8px;
-      border: 1px solid transparent;
-      border-radius: 6px;
-      background: transparent;
-      color: var(--text);
-      width: 140px;
-      outline: none;
-      cursor: pointer;
-    }
-    .note-input:hover { border-color: var(--border); background: var(--surface2); }
-    .note-input:focus { border-color: var(--text); background: var(--surface); cursor: text; }
-    .note-input::placeholder { color: var(--text3); }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text3);
-    }
-    .empty-state p { font-size: 14px; margin-top: 8px; }
-
-    .ts { font-size: 11px; color: var(--text3); font-family: var(--mono); }
-
-    @media (max-width: 720px) {
-      .layout { grid-template-columns: 1fr; }
-      .scanner-panel { border-right: none; border-bottom: 1px solid var(--border); }
-      .db-panel { padding: 16px; }
-    }
-  </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Coupons"/>
+  <meta name="theme-color" content="#ffffff"/>
+  <title>Coupon Wallet</title>
+  <link rel="manifest" href="manifest.json"/>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f2f2f7;color:#000;min-height:100vh;}
+    .app{max-width:430px;margin:0 auto;background:#f2f2f7;min-height:100vh;display:flex;flex-direction:column;}
+    .header{background:#fff;padding:56px 16px 12px;border-bottom:0.5px solid #c6c6c8;}
+    .header h1{font-size:28px;font-weight:700;}
+    .header-sub{font-size:13px;color:#8e8e93;margin-top:2px;}
+    .tab-bar{display:flex;background:#fff;border-bottom:0.5px solid #c6c6c8;}
+    .tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;color:#8e8e93;cursor:pointer;border-bottom:2px solid transparent;}
+    .tab.active{color:#007aff;border-bottom-color:#007aff;font-weight:500;}
+    .screen{display:none;flex:1;padding:16px;overflow-y:auto;}
+    .screen.active{display:block;}
+    .section{background:#fff;border-radius:12px;overflow:hidden;margin-bottom:16px;}
+    .coupon-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:0.5px solid #c6c6c8;cursor:pointer;background:#fff;}
+    .coupon-row:last-child{border-bottom:none;}
+    .coupon-row:active{background:#f2f2f7;}
+    .coupon-emoji{font-size:26px;width:40px;text-align:center;flex-shrink:0;}
+    .coupon-info{flex:1;min-width:0;}
+    .coupon-name{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .coupon-discount{font-size:13px;color:#34c759;font-weight:500;}
+    .coupon-meta{font-size:11px;color:#8e8e93;margin-top:1px;}
+    .chevron{color:#c6c6c8;font-size:18px;flex-shrink:0;}
+    .badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;}
+    .badge-ok{background:#d4f5de;color:#1a7a35;}
+    .badge-warn{background:#fff3cd;color:#856404;}
+    .badge-exp{background:#fde2e2;color:#842029;}
+    .form-section{background:#fff;border-radius:12px;overflow:hidden;margin-bottom:16px;}
+    .form-row{display:flex;flex-direction:column;padding:11px 16px;border-bottom:0.5px solid #c6c6c8;}
+    .form-row:last-child{border-bottom:none;}
+    .form-label{font-size:11px;color:#8e8e93;font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+    .form-row input{font-size:15px;border:none;outline:none;background:transparent;color:#000;width:100%;font-family:inherit;}
+    .form-row input::placeholder{color:#c6c6c8;}
+    .hint{font-size:11px;color:#8e8e93;margin-top:4px;font-style:italic;}
+    .primary-btn{width:100%;padding:14px;border-radius:12px;background:#007aff;color:#fff;font-size:16px;font-weight:600;border:none;cursor:pointer;margin-bottom:12px;}
+    .danger-btn{width:100%;padding:13px;border-radius:12px;background:#fff;color:#ff3b30;font-size:15px;font-weight:500;border:0.5px solid #c6c6c8;cursor:pointer;}
+    .checkout-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;}
+    .checkout-product{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+    .checkout-emoji{font-size:32px;}
+    .checkout-name{font-size:16px;font-weight:600;}
+    .checkout-discount{font-size:14px;color:#34c759;font-weight:500;}
+    .checkout-exp{font-size:12px;color:#8e8e93;}
+    .barcode-wrap{background:#fff;border:0.5px solid #c6c6c8;border-radius:10px;padding:14px 10px 8px;text-align:center;}
+    .barcode-num{font-size:13px;color:#333;margin-top:5px;font-family:monospace;letter-spacing:2px;}
+    .progress{display:flex;gap:6px;justify-content:center;margin:12px 0;}
+    .prog-dot{width:8px;height:8px;border-radius:50%;background:#c6c6c8;}
+    .prog-dot.active{background:#007aff;}
+    .next-btn{width:100%;padding:13px;border-radius:12px;border:0.5px solid #c6c6c8;background:#fff;font-size:15px;color:#007aff;cursor:pointer;}
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:flex-end;}
+    .modal.open{display:flex;}
+    .modal-sheet{background:#f2f2f7;border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:20px 16px 40px;}
+    .modal-handle{width:36px;height:4px;background:#c6c6c8;border-radius:2px;margin:0 auto 16px;}
+    .modal-title{font-size:20px;font-weight:700;margin-bottom:16px;}
+    .empty{text-align:center;padding:48px 20px;color:#8e8e93;font-size:15px;}
+    .empty-icon{font-size:48px;margin-bottom:12px;}
+    .brand-tag{display:inline-block;background:#e7f0ff;color:#007aff;font-size:11px;padding:2px 8px;border-radius:8px;margin-top:4px;font-weight:500;}
+  </style>
 </head>
 <body>
-
-<header>
-  <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-    <rect x="1" y="4" width="2" height="14" fill="white"/>
-    <rect x="4" y="4" width="1" height="14" fill="white"/>
-    <rect x="6" y="4" width="2" height="14" fill="white"/>
-    <rect x="9.5" y="4" width="1" height="14" fill="white"/>
-    <rect x="11.5" y="4" width="2.5" height="14" fill="white"/>
-    <rect x="15" y="4" width="1" height="14" fill="white"/>
-    <rect x="17" y="4" width="2" height="14" fill="white"/>
-    <rect x="20" y="4" width="1" height="14" fill="white"/>
-  </svg>
-  <h1>Coupon Database</h1>
-  <span id="header-count">0 coupons stored</span>
-</header>
-
-<div class="layout">
-
-  <!-- ── Scanner Panel ── -->
-  <div class="scanner-panel">
-    <div class="panel-title">Barcode Scanner</div>
-
-    <div class="camera-wrap">
-      <video id="preview" playsinline muted></video>
-      <div class="aim-overlay">
-        <div class="aim-box"></div>
-      </div>
-      <div class="scan-flash" id="flash"></div>
-      <div class="scan-hint" id="scan-hint">Camera off</div>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-primary" id="btn-start" onclick="startScan()" style="flex:1;">
-        ▶ Start camera
-      </button>
-      <button id="btn-stop" onclick="stopScan()" disabled style="flex:1;">
-        ⏸ Stop
-      </button>
-      <button onclick="document.getElementById('file-input').click()" title="Upload image">
-        ↑ Image
-      </button>
-      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="scanFromFile(event)">
-    </div>
-
-    <div class="result-box" id="result-box">
-      <div class="result-label">✓ Barcode detected</div>
-      <div class="result-value" id="result-value"></div>
-      <div class="result-format" id="result-format"></div>
-      <div class="result-actions">
-        <button onclick="saveCurrent()" class="btn-primary" style="flex:1;">+ Save to database</button>
-        <button onclick="copyResult()" id="btn-copy">Copy</button>
-      </div>
-    </div>
-
-    <div class="error-box" id="error-box"></div>
-
-    <div>
-      <div class="panel-title" style="margin-bottom:10px;">Manual entry</div>
-      <div class="manual-entry">
-        <input type="text" id="manual-input" placeholder="Type or paste barcode value..." onkeydown="if(event.key==='Enter')saveManual()">
-        <button onclick="saveManual()" class="btn-primary">Add</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Database Panel ── -->
-  <div class="db-panel">
-    <div class="db-header">
-      <div class="panel-title">Stored Coupons</div>
-      <div class="search-bar">
-        <input type="text" id="search-input" placeholder="Search barcodes or notes..." oninput="renderTable()">
-        <button onclick="exportCSV()">↓ Export CSV</button>
-        <button onclick="clearAll()" class="btn-danger">Clear all</button>
-      </div>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-num" id="stat-total">0</div>
-        <div class="stat-lbl">Total coupons</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-today">0</div>
-        <div class="stat-lbl">Added today</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-formats">0</div>
-        <div class="stat-lbl">Unique formats</div>
-      </div>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Barcode value</th>
-            <th>Format</th>
-            <th>Note</th>
-            <th>Added</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="table-body"></tbody>
-      </table>
-      <div class="empty-state" id="empty-state">
-        <div style="font-size:32px;">⬛</div>
-        <p>No coupons yet. Scan or type a barcode to get started.</p>
-      </div>
-    </div>
-  </div>
+<div class="app">
+  <div class="header">
+    <h1>Coupon Wallet</h1>
+    <div class="header-sub" id="header-sub">Loading...</div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="showScreen('coupons')">🏷 My Coupons</div>
+    <div class="tab" onclick="showScreen('add')">➕ Add New</div>
+    <div class="tab" onclick="showScreen('checkout')">🛒 Checkout</div>
+  </div>
+  <div id="screen-coupons" class="screen active"><div id="coupon-list"></div></div>
+  <div id="screen-add" class="screen">
+    <div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:#666;line-height:1.5;">
+      💡 <strong>How to add a coupon:</strong><br>
+      Type the number printed under the barcode on your coupon. The app will detect the brand for you and create a scannable barcode you can show at self-checkout.
+    </div>
+    <div class="form-section">
+      <div class="form-row">
+        <div class="form-label">Barcode number</div>
+        <input id="inp-barcode" type="text" inputmode="numeric" placeholder="e.g. 0074300061034" oninput="detectBrand()"/>
+        <div class="hint" id="brand-hint">Type the number from under the barcode</div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">Product name</div>
+        <input id="inp-name" type="text" placeholder="e.g. Tylenol Precise Patches"/>
+      </div>
+      <div class="form-row">
+        <div class="form-label">Discount</div>
+        <input id="inp-discount" type="text" placeholder="e.g. $3.50 off"/>
+      </div>
+      <div class="form-row">
+        <div class="form-label">Expiration date</div>
+        <input id="inp-exp" type="date"/>
+      </div>
+    </div>
+    <button class="primary-btn" onclick="saveCoupon()">Save Coupon</button>
+  </div>
+  <div id="screen-checkout" class="screen"><div id="checkout-content"></div></div>
 </div>
 
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<div id="modal" class="modal" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
 <script>
-  // ── State ──
-  let coupons = JSON.parse(localStorage.getItem('coupons') || '[]');
-  let codeReader = null;
-  let lastScanned = null;
-  let currentResult = null;
+// Manufacturer prefix lookup - maps UPC company prefix to brand name + emoji
+const BRAND_PREFIXES={
+  '003500':{name:'Tylenol/Kenvue',emoji:'💊'},
+  '007430':{name:'Tylenol/Kenvue',emoji:'💊'},
+  '030045':{name:'J&J',emoji:'💊'},
+  '038137':{name:'Neutrogena',emoji:'🧴'},
+  '037000':{name:'P&G',emoji:'🧼'},
+  '030772':{name:'P&G',emoji:'🧼'},
+  '037000':{name:'Tide/P&G',emoji:'🧺'},
+  '041100':{name:'Pampers',emoji:'👶'},
+  '019200':{name:'Pepsi',emoji:'🥤'},
+  '049000':{name:'Coca-Cola',emoji:'🥤'},
+  '028400':{name:'Frito-Lay',emoji:'🍿'},
+  '038000':{name:'Kellogg\'s',emoji:'🥣'},
+  '016000':{name:'General Mills',emoji:'🥣'},
+  '021130':{name:'Kroger',emoji:'🛒'},
+  '011110':{name:'Kroger',emoji:'🛒'},
+  '030000':{name:'Quaker',emoji:'🥣'},
+  '044000':{name:'Nabisco',emoji:'🍪'},
+  '034000':{name:'Hershey\'s',emoji:'🍫'},
+  '040000':{name:'Mars',emoji:'🍫'},
+  '022000':{name:'Mars/Wrigley',emoji:'🍬'},
+  '020000':{name:'Nestle',emoji:'☕'},
+  '028000':{name:'Nestle',emoji:'☕'},
+  '050000':{name:'Campbell\'s',emoji:'🥫'},
+  '051000':{name:'Campbell\'s',emoji:'🥫'},
+  '064420':{name:'Simple Truth',emoji:'🌱'},
+  '073149':{name:'Dawn',emoji:'🧼'},
+  '088313':{name:'Olay',emoji:'🧴'},
+  '305210':{name:'L\'Oreal',emoji:'💄'},
+  '381370':{name:'Neutrogena',emoji:'🧴'},
+  '022400':{name:'Glade/SC Johnson',emoji:'🌸'},
+  '046500':{name:'SC Johnson',emoji:'🧼'},
+  '052200':{name:'Kraft',emoji:'🧀'},
+  '021000':{name:'Kraft Heinz',emoji:'🥫'},
+  '041303':{name:'Kraft Heinz',emoji:'🥫'},
+  '063648':{name:'Lipton',emoji:'🍵'},
+  '041105':{name:'Heinz',emoji:'🍅'},
+  '012000':{name:'Pepsi',emoji:'🥤'},
+  '033200':{name:'Reynolds',emoji:'📦'},
+  '041190':{name:'Hellmann\'s',emoji:'🥪'},
+  '036000':{name:'Kimberly-Clark',emoji:'🧻'},
+  '054000':{name:'Kimberly-Clark',emoji:'🧻'},
+  '085000':{name:'Charmin',emoji:'🧻'},
+  '023400':{name:'Bounty',emoji:'🧻'}
+};
 
-  // ── Persistence ──
-  function save() {
-    localStorage.setItem('coupons', JSON.stringify(coupons));
-    renderTable();
-    updateStats();
-  }
+const STORAGE_KEY='coupon_wallet_v4';
+let coupons=[];
+let currentIdx=0;
 
-  // ── Scanner ──
-  function showError(msg) {
-    const b = document.getElementById('error-box');
-    b.textContent = msg;
-    b.style.display = 'block';
-  }
-  function hideError() { document.getElementById('error-box').style.display = 'none'; }
+function load(){try{const d=localStorage.getItem(STORAGE_KEY);if(d)coupons=JSON.parse(d);}catch(e){}save();}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(coupons));}catch(e){}}
+function daysUntil(d){return Math.ceil((new Date(d)-new Date())/86400000);}
 
-  function triggerFlash() {
-    const f = document.getElementById('flash');
-    f.style.opacity = '1';
-    setTimeout(() => f.style.opacity = '0', 280);
-  }
+function detectBrand(){
+  const code=document.getElementById('inp-barcode').value.replace(/\D/g,'');
+  const hint=document.getElementById('brand-hint');
+  const nameInp=document.getElementById('inp-name');
+  if(code.length<6){hint.innerHTML='Type the number from under the barcode';return null;}
+  // Check 6-digit prefix
+  const prefix=code.substring(0,6);
+  let match=BRAND_PREFIXES[prefix];
+  // Try common variations
+  if(!match){
+    for(let len=4;len<=8;len++){
+      const tryPrefix=code.substring(0,len).padStart(6,'0');
+      if(BRAND_PREFIXES[tryPrefix]){match=BRAND_PREFIXES[tryPrefix];break;}
+    }
+  }
+  if(match){
+    hint.innerHTML=`<span class="brand-tag">${match.emoji} ${match.name} detected</span>`;
+    if(!nameInp.value.trim())nameInp.value=match.name+' ';
+    return match;
+  } else {
+    hint.innerHTML='Brand not recognized — that\'s fine, just type the product name below';
+    return null;
+  }
+}
 
-  function showResult(text, format) {
-    if (text === lastScanned) return;
-    lastScanned = text;
-    currentResult = { text, format };
-    triggerFlash();
-    document.getElementById('result-value').textContent = text;
-    document.getElementById('result-format').textContent = 'Format: ' + (format || 'unknown');
-    document.getElementById('result-box').style.display = 'block';
-    hideError();
-  }
+function getEmojiForCoupon(c){
+  if(c.emoji)return c.emoji;
+  const code=(c.barcode||'').replace(/\D/g,'');
+  const prefix=code.substring(0,6);
+  return BRAND_PREFIXES[prefix]?.emoji||'🏷';
+}
 
-  async function startScan() {
-    hideError();
-    lastScanned = null;
-    document.getElementById('btn-start').disabled = true;
-    document.getElementById('btn-stop').disabled = false;
-    document.getElementById('scan-hint').textContent = 'Starting…';
+function renderCoupons(){
+  const valid=coupons.filter(c=>daysUntil(c.exp)>=0);
+  const expired=coupons.filter(c=>daysUntil(c.exp)<0);
+  document.getElementById('header-sub').textContent=valid.length+' coupon'+(valid.length!==1?'s':'')+' saved';
+  const list=document.getElementById('coupon-list');
+  if(!coupons.length){list.innerHTML='<div class="empty"><div class="empty-icon">🏷</div>No coupons yet.<br>Tap "Add New" to add your first coupon.</div>';return;}
+  const renderGroup=(items,label)=>{
+    if(!items.length)return'';
+    return`<div style="font-size:13px;color:#8e8e93;font-weight:500;padding:0 4px 6px;margin-top:4px;">${label}</div>
+    <div class="section">${items.map(c=>{
+      const days=daysUntil(c.exp);
+      const expLabel=days<0?'Expired':days===0?'Expires today':days<=7?`Expires in ${days}d`:`Exp ${c.exp}`;
+      const badgeClass=days<0?'badge-exp':days<=7?'badge-warn':'badge-ok';
+      return`<div class="coupon-row" onclick="openCoupon(${c.id})"><div class="coupon-emoji">${getEmojiForCoupon(c)}</div><div class="coupon-info"><div class="coupon-name">${c.name}</div><div class="coupon-discount">${c.discount}</div><div class="coupon-meta"><span class="badge ${badgeClass}">${expLabel}</span></div></div><div class="chevron">›</div></div>`;
+    }).join('')}</div>`;
+  };
+  list.innerHTML=renderGroup(valid,'Active')+renderGroup(expired,'Expired');
+}
 
-    try {
-      const hints = new Map();
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
-        ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.CODE_93, ZXing.BarcodeFormat.ITF,
-        ZXing.BarcodeFormat.RSS_14, ZXing.BarcodeFormat.RSS_EXPANDED,
-        ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.DATA_MATRIX,
-        ZXing.BarcodeFormat.PDF_417, ZXing.BarcodeFormat.AZTEC,
-      ]);
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+function generateBarcodeSVG(code){
+  const canvas=document.createElement('canvas');
+  try{JsBarcode(canvas,code,{format:'auto',width:2,height:80,displayValue:false,margin:10});return`<img src="${canvas.toDataURL()}" style="width:100%;max-width:320px;"/>`;}
+  catch(e){try{JsBarcode(canvas,code,{format:'CODE128',width:2,height:80,displayValue:false,margin:10});return`<img src="${canvas.toDataURL()}" style="width:100%;max-width:320px;"/>`;}
+  catch(e2){return`<div style="font-family:monospace;font-size:18px;padding:20px;letter-spacing:3px;">${code}</div>`;}}
+}
 
-      codeReader = new ZXing.BrowserMultiFormatContinuousReader(hints);
-      const devices = await codeReader.listVideoInputDevices();
-      let deviceId = devices[0]?.deviceId;
-      const rear = devices.find(d => /back|rear|environment/i.test(d.label));
-      if (rear) deviceId = rear.deviceId;
+function openCoupon(id){
+  const c=coupons.find(x=>x.id===id);if(!c)return;
+  document.getElementById('modal-title').textContent=c.name;
+  document.getElementById('modal-body').innerHTML=`
+    <div style="text-align:center;font-size:48px;margin-bottom:8px;">${getEmojiForCoupon(c)}</div>
+    <div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:22px;font-weight:700;color:#34c759;text-align:center;margin-bottom:4px;">${c.discount}</div>
+      <div style="font-size:13px;color:#8e8e93;text-align:center;">Expires: ${c.exp}</div>
+    </div>
+    <div class="barcode-wrap" style="margin-bottom:14px;">${generateBarcodeSVG(c.barcode)}<div class="barcode-num">${c.barcode}</div></div>
+    <div style="font-size:12px;color:#8e8e93;text-align:center;margin-bottom:16px;">Hold this screen up to the self-checkout scanner</div>
+    <button class="danger-btn" onclick="deleteCoupon(${c.id})">Delete Coupon</button>`;
+  document.getElementById('modal').classList.add('open');
+}
 
-      await codeReader.decodeContinuouslyFromVideoDevice(deviceId, 'preview');
-      codeReader.onDecodeResult = (result) => {
-        if (result) showResult(result.getText(), result.getBarcodeFormat()?.toString());
-      };
-      document.getElementById('scan-hint').textContent = 'Align barcode within the frame';
-    } catch (e) {
-      showError('Camera error: ' + (e.message || e));
-      document.getElementById('btn-start').disabled = false;
-      document.getElementById('btn-stop').disabled = true;
-      document.getElementById('scan-hint').textContent = 'Camera error';
-    }
-  }
+function closeModal(e){if(e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');}
+function deleteCoupon(id){if(!confirm('Delete this coupon?'))return;coupons=coupons.filter(c=>c.id!==id);save();renderCoupons();document.getElementById('modal').classList.remove('open');}
 
-  function stopScan() {
-    if (codeReader) { try { codeReader.reset(); } catch(e){} codeReader = null; }
-    document.getElementById('btn-start').disabled = false;
-    document.getElementById('btn-stop').disabled = true;
-    document.getElementById('scan-hint').textContent = 'Camera off';
-  }
+function renderCheckout(){
+  const valid=coupons.filter(c=>daysUntil(c.exp)>=0);
+  const el=document.getElementById('checkout-content');
+  if(!valid.length){el.innerHTML='<div class="empty"><div class="empty-icon">🛒</div>No valid coupons.<br>Add some coupons first.</div>';return;}
+  if(currentIdx>=valid.length)currentIdx=0;
+  const c=valid[currentIdx];
+  const dots=valid.map((_,i)=>`<div class="prog-dot ${i===currentIdx?'active':''}"></div>`).join('');
+  el.innerHTML=`<div style="font-size:13px;color:#8e8e93;margin-bottom:12px;">${currentIdx+1} of ${valid.length} — hold each up to the scanner, then tap Next</div>
+    <div class="checkout-card"><div class="checkout-product"><div class="checkout-emoji">${getEmojiForCoupon(c)}</div><div><div class="checkout-name">${c.name}</div><div class="checkout-discount">${c.discount}</div><div class="checkout-exp">Expires ${c.exp}</div></div></div>
+    <div class="barcode-wrap">${generateBarcodeSVG(c.barcode)}<div class="barcode-num">${c.barcode}</div></div></div>
+    <div class="progress">${dots}</div>
+    ${currentIdx<valid.length-1?`<button class="next-btn" onclick="nextCoupon()">Next coupon →</button>`:`<button class="primary-btn" onclick="allDone()">Done — all scanned ✓</button>`}`;
+}
 
-  async function scanFromFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    hideError();
-    try {
-      const hints = new Map();
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      const reader = new ZXing.BrowserMultiFormatReader(hints);
-      const url = URL.createObjectURL(file);
-      const result = await reader.decodeFromImageUrl(url);
-      URL.revokeObjectURL(url);
-      showResult(result.getText(), result.getBarcodeFormat()?.toString());
-    } catch(e) {
-      showError('Could not read barcode. Try better lighting or a closer shot.');
-    }
-    event.target.value = '';
-  }
+function nextCoupon(){const valid=coupons.filter(c=>daysUntil(c.exp)>=0);if(currentIdx<valid.length-1){currentIdx++;renderCheckout();}}
+function allDone(){document.getElementById('checkout-content').innerHTML=`<div class="empty"><div style="font-size:60px;">✅</div><div style="font-size:22px;font-weight:700;margin:12px 0 6px;">All Done!</div><div style="font-size:15px;color:#8e8e93;">All coupons scanned.</div><button class="primary-btn" style="margin-top:24px;" onclick="currentIdx=0;renderCheckout();">Scan Again</button></div>`;}
 
-  function copyResult() {
-    const val = document.getElementById('result-value').textContent;
-    navigator.clipboard.writeText(val).then(() => {
-      const b = document.getElementById('btn-copy');
-      b.textContent = '✓ Copied';
-      setTimeout(() => b.textContent = 'Copy', 1500);
-    });
-  }
+function saveCoupon(){
+  const barcode=document.getElementById('inp-barcode').value.replace(/[^0-9A-Za-z]/g,'');
+  const name=document.getElementById('inp-name').value.trim();
+  const discount=document.getElementById('inp-discount').value.trim();
+  const exp=document.getElementById('inp-exp').value;
+  if(!barcode){alert('Please enter the barcode number.');return;}
+  if(!name||!discount||!exp){alert('Please fill in all fields.');return;}
+  const brand=BRAND_PREFIXES[barcode.substring(0,6)];
+  coupons.push({id:Date.now(),name,discount,exp,barcode,emoji:brand?.emoji||'🏷'});
+  save();
+  document.getElementById('inp-barcode').value='';
+  document.getElementById('inp-name').value='';
+  document.getElementById('inp-discount').value='';
+  document.getElementById('inp-exp').value='';
+  document.getElementById('brand-hint').innerHTML='Type the number from under the barcode';
+  renderCoupons();
+  showScreen('coupons');
+}
 
-  // ── Database ──
-  function saveCurrent() {
-    if (!currentResult) return;
-    addCoupon(currentResult.text, currentResult.format);
-    document.getElementById('result-box').style.display = 'none';
-    currentResult = null;
-    lastScanned = null;
-  }
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.tab')[{coupons:0,add:1,checkout:2}[name]].classList.add('active');
+  if(name==='checkout'){currentIdx=0;renderCheckout();}
+  if(name==='coupons')renderCoupons();
+}
 
-  function saveManual() {
-    const val = document.getElementById('manual-input').value.trim();
-    if (!val) return;
-    addCoupon(val, 'Manual');
-    document.getElementById('manual-input').value = '';
-  }
-
-  function addCoupon(barcode, format) {
-    const now = new Date();
-    coupons.unshift({
-      id: Date.now(),
-      barcode,
-      format: format || 'unknown',
-      note: '',
-      added: now.toISOString(),
-    });
-    save();
-  }
-
-  function deleteCoupon(id) {
-    coupons = coupons.filter(c => c.id !== id);
-    save();
-  }
-
-  function updateNote(id, note) {
-    const c = coupons.find(c => c.id === id);
-    if (c) { c.note = note; save(); }
-  }
-
-  function clearAll() {
-    if (!confirm('Delete all coupons? This cannot be undone.')) return;
-    coupons = [];
-    save();
-  }
-
-  function exportCSV() {
-    const rows = [['#', 'Barcode', 'Format', 'Note', 'Added']];
-    coupons.forEach((c, i) => rows.push([i+1, c.barcode, c.format, c.note, c.added]));
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'coupons.csv';
-    a.click();
-  }
-
-  function renderTable() {
-    const q = document.getElementById('search-input').value.toLowerCase();
-    const filtered = coupons.filter(c =>
-      c.barcode.toLowerCase().includes(q) || c.note.toLowerCase().includes(q)
-    );
-
-    const tbody = document.getElementById('table-body');
-    const empty = document.getElementById('empty-state');
-
-    if (filtered.length === 0) {
-      tbody.innerHTML = '';
-      empty.style.display = 'block';
-    } else {
-      empty.style.display = 'none';
-      tbody.innerHTML = filtered.map((c, i) => {
-        const d = new Date(c.added);
-        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        const fmtClass = c.format === 'Manual' ? 'badge-amber' : 'badge-green';
-        return `<tr>
-          <td class="ts">${i + 1}</td>
-          <td class="td-barcode">${escHtml(c.barcode)}</td>
-          <td><span class="badge ${fmtClass}">${escHtml(c.format)}</span></td>
-          <td><input class="note-input" value="${escHtml(c.note)}" placeholder="Add note…"
-            onchange="updateNote(${c.id}, this.value)"
-            onblur="updateNote(${c.id}, this.value)"></td>
-          <td class="ts">${dateStr}<br>${timeStr}</td>
-          <td><button onclick="deleteCoupon(${c.id})" title="Delete" style="padding:4px 8px; color:var(--accent); border-color:#f0c4b8;">✕</button></td>
-        </tr>`;
-      }).join('');
-    }
-
-    document.getElementById('header-count').textContent = `${coupons.length} coupon${coupons.length !== 1 ? 's' : ''} stored`;
-  }
-
-  function updateStats() {
-    const today = new Date().toDateString();
-    const todayCount = coupons.filter(c => new Date(c.added).toDateString() === today).length;
-    const formats = new Set(coupons.map(c => c.format)).size;
-    document.getElementById('stat-total').textContent = coupons.length;
-    document.getElementById('stat-today').textContent = todayCount;
-    document.getElementById('stat-formats').textContent = formats;
-  }
-
-  function escHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  // ── Init ──
-  renderTable();
-  updateStats();
+load();renderCoupons();
 </script>
+
 </body>
 </html>
