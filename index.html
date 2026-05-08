@@ -159,6 +159,8 @@
 </div>
 
 <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+
 <script>
 const EMOJIS=['','','','','','','','','','','','','','',''];
 const STORAGE_KEY='coupon_wallet_v1';
@@ -250,12 +252,12 @@ function deleteCoupon(id){
 }
 
 function generateBarcodeSVG(code){
-  const bars=[];let x=8;
-  const seed=code.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
-  for(let i=0;i<70;i++){
-    const w=((seed*(i+7)*13)%3)+1;
-    if((seed*(i+3))%5!==0)bars.push(`<rect x="${x}" y="0" width="${w}" height="70" fill="#000"/>`);
-    x+=w+1;
+  const canvas=document.createElement('canvas');
+  try{
+    JsBarcode(canvas,code,{format:'CODE128',width:2,height:70,displayValue:false});
+    return`<img src="${canvas.toDataURL()}" style="width:100%;"/>`;
+  }catch(e){
+    return`<div style="color:red;font-size:12px;">Invalid barcode</div>`;
   }
   return`<svg style="width:100%;height:70px" viewBox="0 0 ${x} 70" xmlns="http://www.w3.org/2000/svg">${bars.join('')}</svg>`;
 }
