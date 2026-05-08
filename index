@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Coupons"/>
+  <meta name="theme-color" content="#ffffff"/>
+  <title>Coupon Wallet</title>
+  <link rel="manifest" href="manifest.json"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f2f2f7;color:#000;min-height:100vh;}
+    .app{max-width:430px;margin:0 auto;background:#f2f2f7;min-height:100vh;display:flex;flex-direction:column;}
+
+    /* Header */
+    .header{background:#fff;padding:56px 16px 12px;border-bottom:0.5px solid #c6c6c8;}
+    .header h1{font-size:28px;font-weight:700;color:#000;}
+    .header-sub{font-size:13px;color:#8e8e93;margin-top:2px;}
+
+    /* Tab bar */
+    .tab-bar{display:flex;background:#fff;border-bottom:0.5px solid #c6c6c8;}
+    .tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;color:#8e8e93;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+    .tab.active{color:#007aff;border-bottom-color:#007aff;font-weight:500;}
+
+    /* Screens */
+    .screen{display:none;flex:1;padding:16px;overflow-y:auto;}
+    .screen.active{display:block;}
+
+    /* Coupon list */
+    .section{background:#fff;border-radius:12px;overflow:hidden;margin-bottom:16px;}
+    .coupon-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:0.5px solid #c6c6c8;cursor:pointer;background:#fff;transition:background .1s;}
+    .coupon-row:last-child{border-bottom:none;}
+    .coupon-row:active{background:#f2f2f7;}
+    .coupon-emoji{font-size:26px;width:40px;text-align:center;flex-shrink:0;}
+    .coupon-info{flex:1;min-width:0;}
+    .coupon-name{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .coupon-discount{font-size:13px;color:#34c759;font-weight:500;}
+    .coupon-meta{font-size:11px;color:#8e8e93;margin-top:1px;}
+    .chevron{color:#c6c6c8;font-size:18px;flex-shrink:0;}
+    .badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;}
+    .badge-ok{background:#d4f5de;color:#1a7a35;}
+    .badge-warn{background:#fff3cd;color:#856404;}
+    .badge-exp{background:#fde2e2;color:#842029;}
+
+    /* Add button */
+    .add-row{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;color:#007aff;font-size:15px;background:#fff;border-radius:12px;margin-bottom:16px;}
+    .add-row:active{background:#f2f2f7;}
+
+    /* Scanner */
+    .scan-box{background:#000;border-radius:12px;overflow:hidden;position:relative;margin-bottom:16px;aspect-ratio:1;}
+    #scanner-video{width:100%;height:100%;object-fit:cover;display:block;}
+    .scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+    .scan-frame{width:65%;aspect-ratio:2.5;border:2px solid #fff;border-radius:8px;box-shadow:0 0 0 2000px rgba(0,0,0,0.45);}
+    .scan-hint{text-align:center;font-size:13px;color:#8e8e93;margin-bottom:16px;}
+    .scan-result{background:#d4f5de;border-radius:10px;padding:10px 14px;font-size:13px;color:#1a7a35;margin-bottom:14px;display:none;align-items:center;gap:8px;}
+    #scan-manual-btn{width:100%;padding:13px;border-radius:12px;border:0.5px solid #c6c6c8;background:#fff;font-size:15px;color:#007aff;cursor:pointer;margin-bottom:16px;}
+
+    /* Form */
+    .form-section{background:#fff;border-radius:12px;overflow:hidden;margin-bottom:16px;}
+    .form-row{display:flex;flex-direction:column;padding:11px 16px;border-bottom:0.5px solid #c6c6c8;}
+    .form-row:last-child{border-bottom:none;}
+    .form-label{font-size:11px;color:#8e8e93;font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+    .form-row input{font-size:15px;border:none;outline:none;background:transparent;color:#000;width:100%;font-family:inherit;}
+    .form-row input::placeholder{color:#c6c6c8;}
+    .primary-btn{width:100%;padding:14px;border-radius:12px;background:#007aff;color:#fff;font-size:16px;font-weight:600;border:none;cursor:pointer;margin-bottom:12px;}
+    .primary-btn:active{background:#0062cc;}
+    .danger-btn{width:100%;padding:13px;border-radius:12px;background:#fff;color:#ff3b30;font-size:15px;font-weight:500;border:0.5px solid #c6c6c8;cursor:pointer;}
+
+    /* Checkout */
+    .checkout-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;}
+    .checkout-product{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+    .checkout-emoji{font-size:32px;}
+    .checkout-name{font-size:16px;font-weight:600;}
+    .checkout-discount{font-size:14px;color:#34c759;font-weight:500;}
+    .checkout-exp{font-size:12px;color:#8e8e93;}
+    .barcode-wrap{background:#fff;border:0.5px solid #c6c6c8;border-radius:10px;padding:14px 10px 8px;text-align:center;}
+    .barcode-num{font-size:11px;color:#8e8e93;margin-top:5px;font-family:monospace;letter-spacing:2px;}
+    .progress{display:flex;gap:6px;justify-content:center;margin:12px 0;}
+    .prog-dot{width:8px;height:8px;border-radius:50%;background:#c6c6c8;transition:background .2s;}
+    .prog-dot.active{background:#007aff;}
+    .next-btn{width:100%;padding:13px;border-radius:12px;border:0.5px solid #c6c6c8;background:#fff;font-size:15px;color:#007aff;cursor:pointer;font-family:inherit;}
+    .done-banner{text-align:center;padding:40px 20px;}
+    .done-check{font-size:60px;}
+    .done-title{font-size:22px;font-weight:700;margin:12px 0 6px;}
+    .done-sub{font-size:15px;color:#8e8e93;}
+
+    /* Detail modal */
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:flex-end;}
+    .modal.open{display:flex;}
+    .modal-sheet{background:#f2f2f7;border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:20px 16px 40px;}
+    .modal-handle{width:36px;height:4px;background:#c6c6c8;border-radius:2px;margin:0 auto 16px;}
+    .modal-title{font-size:20px;font-weight:700;margin-bottom:16px;}
+
+    /* Empty */
+    .empty{text-align:center;padding:48px 20px;color:#8e8e93;font-size:15px;}
+    .empty-icon{font-size:48px;margin-bottom:12px;}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Coupon Wallet</h1>
+    <div class="header-sub" id="header-sub">Loading...</div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" onclick="showScreen('coupons')"> My Coupons</div>
+    <div class="tab" onclick="showScreen('add')"> Add New</div>
+    <div class="tab" onclick="showScreen('checkout')"> Checkout</div>
+  </div>
+
+  <!-- MY COUPONS -->
+  <div id="screen-coupons" class="screen active">
+    <div id="coupon-list"></div>
+  </div>
+
+  <!-- ADD NEW -->
+  <div id="screen-add" class="screen">
+    <div class="scan-box" id="scan-box">
+      <video id="scanner-video" autoplay playsinline muted></video>
+      <div class="scan-overlay"><div class="scan-frame"></div></div>
+    </div>
+    <div class="scan-hint">Point the camera at the barcode on your paper coupon</div>
+    <div id="scan-result" class="scan-result"> Barcode captured: <span id="scan-result-val" style="font-family:monospace;font-size:11px;"></span></div>
+    <button id="scan-manual-btn" onclick="manualEntry()">Enter barcode manually instead</button>
+
+    <div class="form-section">
+      <div class="form-row">
+        <div class="form-label">Product name</div>
+        <input id="inp-name" type="text" placeholder="e.g. Kroger whole milk 1 gal"/>
+      </div>
+      <div class="form-row">
+        <div class="form-label">Discount</div>
+        <input id="inp-discount" type="text" placeholder="e.g. $1.00 off"/>
+      </div>
+      <div class="form-row">
+        <div class="form-label">Expiration date</div>
+        <input id="inp-exp" type="date"/>
+      </div>
+    </div>
+    <button class="primary-btn" onclick="saveCoupon()">Save Coupon</button>
+  </div>
+
+  <!-- CHECKOUT -->
+  <div id="screen-checkout" class="screen">
+    <div id="checkout-content"></div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div id="modal" class="modal" onclick="closeModal(event)">
+  <div class="modal-sheet" id="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+<script>
+const EMOJIS=['','','','','','','','','','','','','','',''];
+const STORAGE_KEY='coupon_wallet_v1';
+
+let coupons=[];
+let currentIdx=0;
+let scannedBarcode=null;
+let codeReader=null;
+let scanActive=false;
+
+function load(){
+  try{const d=localStorage.getItem(STORAGE_KEY);if(d)coupons=JSON.parse(d);}catch(e){}
+  if(!coupons.length){
+    coupons=[
+      {id:1,name:'Kroger whole milk 1 gal',discount:'$1.00 off',exp:'2026-05-31',barcode:'5012345678901',emoji:''},
+      {id:2,name:'Simple Truth chicken breasts',discount:'$2.50 off',exp:'2026-05-20',barcode:'5098765432101',emoji:''},
+      {id:3,name:"Dave's Killer Bread",discount:'$0.75 off',exp:'2026-06-15',barcode:'5055512349871',emoji:''},
+    ];
+    save();
+  }
+}
+
+function save(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(coupons));}catch(e){}
+}
+
+function daysUntil(d){return Math.ceil((new Date(d)-new Date())/86400000);}
+
+function renderCoupons(){
+  const valid=coupons.filter(c=>daysUntil(c.exp)>=0);
+  const expired=coupons.filter(c=>daysUntil(c.exp)<0);
+  document.getElementById('header-sub').textContent=valid.length+' coupon'+(valid.length!==1?'s':'')+' saved';
+  const list=document.getElementById('coupon-list');
+  if(!coupons.length){
+    list.innerHTML='<div class="empty"><div class="empty-icon"></div>No coupons yet.<br>Tap "Add New" to scan your first coupon.</div>';
+    return;
+  }
+  const renderGroup=(items,label)=>{
+    if(!items.length)return'';
+    return`<div style="font-size:13px;color:#8e8e93;font-weight:500;padding:0 4px 6px;margin-top:4px;">${label}</div>
+    <div class="section">${items.map(c=>{
+      const days=daysUntil(c.exp);
+      const expLabel=days<0?'Expired':days===0?'Expires today':days<=7?`Expires in ${days}d`:`Exp ${c.exp}`;
+      const badgeClass=days<0?'badge-exp':days<=7?'badge-warn':'badge-ok';
+      return`<div class="coupon-row" onclick="openCoupon(${c.id})">
+        <div class="coupon-emoji">${c.emoji}</div>
+        <div class="coupon-info">
+          <div class="coupon-name">${c.name}</div>
+          <div class="coupon-discount">${c.discount}</div>
+          <div class="coupon-meta"><span class="badge ${badgeClass}">${expLabel}</span></div>
+        </div>
+        <div class="chevron">›</div>
+      </div>`;
+    }).join('')}</div>`;
+  };
+  list.innerHTML=renderGroup(valid,'Active')+renderGroup(expired,'Expired');
+}
+
+function openCoupon(id){
+  const c=coupons.find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('modal-title').textContent=c.name;
+  document.getElementById('modal-body').innerHTML=`
+    <div style="text-align:center;font-size:48px;margin-bottom:8px;">${c.emoji}</div>
+    <div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:22px;font-weight:700;color:#34c759;text-align:center;margin-bottom:4px;">${c.discount}</div>
+      <div style="font-size:13px;color:#8e8e93;text-align:center;">Expires: ${c.exp}</div>
+    </div>
+    <div class="barcode-wrap" style="margin-bottom:14px;">
+      ${generateBarcodeSVG(c.barcode)}
+      <div class="barcode-num">${c.barcode}</div>
+    </div>
+    <div style="font-size:12px;color:#8e8e93;text-align:center;margin-bottom:16px;">Hold this screen up to the self-checkout scanner</div>
+    <button class="danger-btn" onclick="deleteCoupon(${c.id})">Delete Coupon</button>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e){
+  if(e.target===document.getElementById('modal')||e.currentTarget===document.getElementById('modal'))
+    document.getElementById('modal').classList.remove('open');
+}
+
+function deleteCoupon(id){
+  if(!confirm('Delete this coupon?'))return;
+  coupons=coupons.filter(c=>c.id!==id);
+  save();
+  renderCoupons();
+  document.getElementById('modal').classList.remove('open');
+}
+
+function generateBarcodeSVG(code){
+  const bars=[];let x=8;
+  const seed=code.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  for(let i=0;i<70;i++){
+    const w=((seed*(i+7)*13)%3)+1;
+    if((seed*(i+3))%5!==0)bars.push(`<rect x="${x}" y="0" width="${w}" height="70" fill="#000"/>`);
+    x+=w+1;
+  }
+  return`<svg style="width:100%;height:70px" viewBox="0 0 ${x} 70" xmlns="http://www.w3.org/2000/svg">${bars.join('')}</svg>`;
+}
+
+function renderCheckout(){
+  const valid=coupons.filter(c=>daysUntil(c.exp)>=0);
+  const el=document.getElementById('checkout-content');
+  if(!valid.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon"></div>No valid coupons.<br>Add some coupons first.</div>';
+    return;
+  }
+  if(currentIdx>=valid.length)currentIdx=0;
+  const c=valid[currentIdx];
+  const dots=valid.map((_,i)=>`<div class="prog-dot ${i===currentIdx?'active':''}"></div>`).join('');
+  el.innerHTML=`
+    <div style="font-size:13px;color:#8e8e93;margin-bottom:12px;">${currentIdx+1} of ${valid.length} — hold each up to the scanner, then tap Next</div>
+    <div class="checkout-card">
+      <div class="checkout-product">
+        <div class="checkout-emoji">${c.emoji}</div>
+        <div>
+          <div class="checkout-name">${c.name}</div>
+          <div class="checkout-discount">${c.discount}</div>
+          <div class="checkout-exp">Expires ${c.exp}</div>
+        </div>
+      </div>
+      <div class="barcode-wrap">
+        ${generateBarcodeSVG(c.barcode)}
+        <div class="barcode-num">${c.barcode}</div>
+      </div>
+    </div>
+    <div class="progress">${dots}</div>
+    ${currentIdx<valid.length-1
+      ?`<button class="next-btn" onclick="nextCoupon()">Next coupon →</button>`
+      :`<button class="primary-btn" onclick="allDone()">Done — all scanned ✓</button>`}`;
+}
+
+function nextCoupon(){
+  const valid=coupons.filter(c=>daysUntil(c.exp)>=0);
+  if(currentIdx<valid.length-1){currentIdx++;renderCheckout();}
+}
+
+function allDone(){
+  document.getElementById('checkout-content').innerHTML=`
+    <div class="done-banner">
+      <div class="done-check"></div>
+      <div class="done-title">All Done!</div>
+      <div class="done-sub">All coupons scanned successfully.</div>
+      <button class="primary-btn" style="margin-top:24px;" onclick="currentIdx=0;renderCheckout();">Scan Again</button>
+    </div>`;
+}
+
+// --- BARCODE SCANNER ---
+function startScanner(){
+  if(scanActive)return;
+  if(typeof ZXing==='undefined'){
+    document.querySelector('.scan-hint').textContent='Scanner library loading, please wait...';
+    setTimeout(startScanner,1000);return;
+  }
+  scanActive=true;
+  codeReader=new ZXing.BrowserMultiFormatReader();
+  codeReader.decodeFromVideoDevice(null,'scanner-video',(result,err)=>{
+    if(result){
+      scannedBarcode=result.getText();
+      document.getElementById('scan-result-val').textContent=scannedBarcode;
+      document.getElementById('scan-result').style.display='flex';
+      stopScanner();
+    }
+  });
+}
+
+function stopScanner(){
+  if(codeReader){try{codeReader.reset();}catch(e){}}
+  scanActive=false;
+}
+
+function manualEntry(){
+  const code=prompt('Enter the barcode number from the coupon:');
+  if(code&&code.trim()){
+    scannedBarcode=code.trim();
+    document.getElementById('scan-result-val').textContent=scannedBarcode;
+    document.getElementById('scan-result').style.display='flex';
+    stopScanner();
+  }
+}
+
+function saveCoupon(){
+  const name=document.getElementById('inp-name').value.trim();
+  const discount=document.getElementById('inp-discount').value.trim();
+  const exp=document.getElementById('inp-exp').value;
+  if(!name||!discount||!exp){alert('Please fill in all fields.');return;}
+  if(!scannedBarcode){alert('Please scan the coupon barcode first (or enter it manually).');return;}
+  coupons.push({id:Date.now(),name,discount,exp,barcode:scannedBarcode,emoji:EMOJIS[Math.floor(Math.random()*EMOJIS.length)]});
+  save();
+  document.getElementById('inp-name').value='';
+  document.getElementById('inp-discount').value='';
+  document.getElementById('inp-exp').value='';
+  document.getElementById('scan-result').style.display='none';
+  scannedBarcode=null;
+  startScanner();
+  renderCoupons();
+  showScreen('coupons');
+}
+
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.tab')[{coupons:0,add:1,checkout:2}[name]].classList.add('active');
+  if(name==='add'){
+    scannedBarcode=null;
+    document.getElementById('scan-result').style.display='none';
+    startScanner();
+  } else {
+    stopScanner();
+  }
+  if(name==='checkout'){currentIdx=0;renderCheckout();}
+  if(name==='coupons')renderCoupons();
+}
+
+load();
+renderCoupons();
+</script>
+</body>
+</html>
+
+
