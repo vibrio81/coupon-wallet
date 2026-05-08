@@ -158,7 +158,7 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 
 <script>
@@ -312,36 +312,42 @@ function allDone(){
 // --- BARCODE SCANNER ---
 function startScanner(){
   if(scanActive)return;
-  if(typeof ZXing==='undefined'){
-    document.querySelector('.scan-hint').textContent='Scanner library loading, please wait...';
-    setTimeout(startScanner,1000);return;
-  }
   scanActive=true;
-  codeReader=new ZXing.BrowserMultiFormatReader();
-  codeReader.decodeFromVideoDevice(null,'scanner-video',(result,err)=>{
-    if(result){
-      scannedBarcode=result.getText();
-      document.getElementById('scan-result-val').textContent=scannedBarcode;
-      document.getElementById('scan-result').style.display='flex';
-      stopScanner();
-    }
+  Quagga.init({
+    inputStream:{
+      type:'LiveStream',
+      target:document.getElementById('scanner-video'),
+      constraints:{
+        facingMode:'environment',
+        width:{min:640},
+        height:{min:480}
+      }
+    },
+    decoder:{
+      readers:['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader','i2of5_reader']
+    },
+    locate:true,
+    numOfWorkers:2,
+    frequency:10
+  },function(err){
+    if(err){console.error(err);return;}
+    Quagga.start();
+  });
+  Quagga.onDetected(function(result){
+    const code=result.codeResult.code;
+    if(!code)return;
+    scannedBarcode=code;
+    document.getElementById('scan-result-val').textContent=scannedBarcode;
+    document.getElementById('scan-result').style.display='flex';
+    stopScanner();
   });
 }
 
 function stopScanner(){
-  if(codeReader){try{codeReader.reset();}catch(e){}}
+  try{Quagga.stop();}catch(e){}
   scanActive=false;
 }
 
-function manualEntry(){
-  const code=prompt('Enter the barcode number from the coupon:');
-  if(code&&code.trim()){
-    scannedBarcode=code.trim();
-    document.getElementById('scan-result-val').textContent=scannedBarcode;
-    document.getElementById('scan-result').style.display='flex';
-    stopScanner();
-  }
-}
 
 function saveCoupon(){
   const name=document.getElementById('inp-name').value.trim();
